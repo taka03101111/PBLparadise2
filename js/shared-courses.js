@@ -288,3 +288,33 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+document.addEventListener("DOMContentLoaded", loadPosts);
+
+async function loadPosts() {
+    const { data: posts, error } = await supabase
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+    const container = document.getElementById("postsContainer");
+    container.innerHTML = "";
+
+    if (!posts || posts.length === 0) {
+        container.innerHTML = "<p>まだ投稿がありません。</p>";
+        return;
+    }
+
+    posts.forEach(p => {
+        const div = document.createElement("div");
+        div.classList.add("post-card");
+        div.innerHTML = `
+            <h3>${p.username}（${p.grade}）</h3>
+            <p>${p.comment}</p>
+            <img src="${p.file_url}" style="max-width: 300px;">
+            <p>${new Date(p.created_at).toLocaleString()}</p>
+        `;
+        container.appendChild(div);
+    });
+}
+
