@@ -226,6 +226,57 @@ function removeFile() {
     window.RishuApp.showNotification('ファイルを削除しました', 'info');
 }
 
+document.getElementById("postForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const grade = document.getElementById("grade").value;
+    const comment = document.getElementById("comment").value;
+    const file = document.getElementById("fileInput").files[0];
+
+    if (!file) {
+        alert("ファイルを選択してください");
+        return;
+    }
+
+    // ① Storage にアップロード（ファイル保存）
+    const filePath = `${Date.now()}_${file.name}`;
+    const { data: storageData, error: storageError } = await supabase
+        .storage
+        .from("rishu-files")
+        .upload(filePath, file);
+
+    if (storageError) {
+        alert("ファイルアップロードに失敗しました");
+        console.error(storageError);
+        return;
+    }
+
+    const fileUrl = `https://qlsqyymfamslyrzhcggn.supabase.co/storage/v1/object/public/rishu-files/${filePath}`;
+
+    // ② 投稿を Database に保存
+    const { data, error } = await supabase
+        .from("posts")
+        .insert([
+            {
+                username,
+                grade,
+                comment,
+                file_url: fileUrl,
+                created_at: new Date().toISOString()
+            }
+        ]);
+
+    if (error) {
+        alert("投稿に失敗しました");
+        console.error(error);
+        return;
+    }
+
+    alert("投稿が完了しました！");
+    window.location.href = "shared-courses.html";
+});
+
 // グローバルスコープに関数を公開
 window.removeFile = removeFile;
 document.getElementById("postForm").addEventListener("submit", async function(e) {
