@@ -1,6 +1,9 @@
 // ====================================
-// 投稿ページの機能
+// 投稿ページの機能 (Supabase対応版)
 // ====================================
+
+// SupabaseクライアントはHTML（post.html）で定義されている（const supabase = ...）と仮定します。
+let selectedFile = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     initPostPage();
@@ -13,7 +16,6 @@ function initPostPage() {
     const form = document.getElementById('postForm');
     const fileInput = document.getElementById('fileInput');
     const fileUploadArea = document.getElementById('fileUploadArea');
-    const filePreview = document.getElementById('filePreview');
     
     // フォーム送信
     form.addEventListener('submit', handleSubmit);
@@ -28,7 +30,7 @@ function initPostPage() {
 }
 
 /**
- * フォーム送信処理
+ * フォーム送信処理 (Supabase対応)
  * @param {Event} e - イベントオブジェクト
  */
 async function handleSubmit(e) {
@@ -40,65 +42,83 @@ async function handleSubmit(e) {
     
     // バリデーション
     if (!username) {
-        window.RishuApp.showNotification('投稿者名を入力してください', 'error');
+        alert("投稿者名を入力してください");
         return;
     }
     
     if (!grade) {
-        window.RishuApp.showNotification('学年を選択してください', 'error');
+        alert("学年を選択してください");
         return;
     }
     
     if (!selectedFile) {
-        window.RishuApp.showNotification('ファイルを選択してください', 'error');
+        alert("ファイルを選択してください");
         return;
     }
     
     // ファイルサイズチェック（10MB）
     if (selectedFile.size > 10 * 1024 * 1024) {
-        window.RishuApp.showNotification('ファイルサイズが大きすぎます（最大10MB）', 'error');
+        alert('ファイルサイズが大きすぎます（最大10MB）');
         return;
     }
     
+    // ローディング表示
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 投稿中...';
+    
     try {
-        // ローディング表示
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 投稿中...';
         
-        // ファイルをBase64に変換
-        const fileData = await window.RishuApp.fileToBase64(selectedFile);
-        
-        // 投稿データを作成
-        const post = {
-            username,
-            grade,
-            comment: comment || '（コメントなし）',
-            file: fileData,
-            fileName: selectedFile.name,
-            fileType: selectedFile.type
-        };
-        
-        // 投稿を保存
-        window.RishuApp.addPost(post);
-        
-        // 成功通知
-        window.RishuApp.showNotification('投稿が完了しました！', 'success');
-        
-        // 少し待ってから閲覧ページへリダイレクト
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1000);
+        // ファイル保存用のユニークなパス
+        const filePath = `${Date.now()}_${selectedFile.name}`;
+
+        // ① Storage にファイルをアップロード
+        const { data: fileData, error: fileError } = await supabase
+            .storage
+            .from("rishu-files")
+            .upload(filePath, selectedFile); // selectedFileを使用
+
+        if (fileError) {
+            console.error("Storage Upload Error:", fileError);
+            throw new Error(`ファイルのアップロードに失敗しました: ${fileError.message}`);
+        }
+
+        // 公開URLを生成（URLはpost.htmlで定義されたSUPABASE_URLを元にしています）
+        // URLのベースが「https://qlsqyymfamslyrzhcggn.supabase.co」であることを前提としています
+        const fileUrl = `https://qlsqyymfamslyrzhcggn.supabase.co/storage/v1/object/public/rishu-files/${filePath}`;
+
+        // ② Database に投稿データを保存
+        const { data, error: dbError } = await supabase
+            .from("posts")
+            .insert([
+                {
+                    username: username,
+                    grade: grade,
+                    comment: comment,
+                    file_url: fileUrl,
+                    created_at: new Date().toISOString()
+                }
+            ]);
+
+        if (dbError) {
+            console.error("DB Insert Error:", dbError);
+            throw new Error(`投稿の保存に失敗しました: ${dbError.message}`);
+        }
+
+        // 成功通知とリダイレクト
+        alert("投稿が完了しました！");
+        // post.htmlでindex.htmlへのリダイレクトが設定されていたため、今回はshared-courses.htmlへリダイレクトします
+        window.location.href = "shared-courses.html"; 
         
     } catch (error) {
         console.error('投稿エラー:', error);
-        window.RishuApp.showNotification('投稿に失敗しました', 'error');
+        alert('投稿に失敗しました。\n詳細: ' + error.message);
         
+    } finally {
         // ボタンを元に戻す
-        const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 投稿する';
+        submitBtn.innerHTML = originalText;
     }
 }
 
@@ -146,7 +166,7 @@ function handleDrop(e) {
         // ファイルタイプチェック
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
         if (!validTypes.includes(file.type)) {
-            window.RishuApp.showNotification('対応していないファイル形式です', 'error');
+            alert('対応していないファイル形式です');
             return;
         }
         
@@ -169,30 +189,41 @@ async function processFile(file) {
     const filePreview = document.getElementById('filePreview');
     
     try {
-        const fileData = await window.RishuApp.fileToBase64(file);
-        const fileType = window.RishuApp.getFileType(fileData);
+        // Base64変換はSupabase投稿に不要なため、URL.createObjectURLでプレビューを生成
+        const fileURL = URL.createObjectURL(file);
         
         let previewHTML = '';
         
-        if (fileType === 'image') {
+        if (file.type.startsWith('image/')) {
             previewHTML = `
                 <div class="file-preview-container">
-                    <img src="${fileData}" alt="プレビュー">
+                    <img src="${fileURL}" alt="プレビュー">
                     <button type="button" class="remove-file" onclick="removeFile()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <p class="file-info mt-1">
                     <i class="fas fa-file-image"></i>
-                    ${file.name} (${window.RishuApp.formatFileSize(file.size)})
+                    ${file.name} (${formatFileSize(file.size)})
                 </p>
             `;
-        } else {
+        } else if (file.type === 'application/pdf') {
             previewHTML = `
                 <div class="file-preview-container pdf-preview">
                     <i class="fas fa-file-pdf"></i>
                     <p><strong>${file.name}</strong></p>
-                    <p>${window.RishuApp.formatFileSize(file.size)}</p>
+                    <p>${formatFileSize(file.size)}</p>
+                    <button type="button" class="remove-file" onclick="removeFile()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        } else {
+             previewHTML = `
+                <div class="file-preview-container other-file">
+                    <i class="fas fa-file"></i>
+                    <p><strong>${file.name}</strong></p>
+                    <p>${formatFileSize(file.size)}</p>
                     <button type="button" class="remove-file" onclick="removeFile()">
                         <i class="fas fa-times"></i>
                     </button>
@@ -205,7 +236,7 @@ async function processFile(file) {
         
     } catch (error) {
         console.error('ファイル処理エラー:', error);
-        window.RishuApp.showNotification('ファイルの読み込みに失敗しました', 'error');
+        alert('ファイルの読み込みに失敗しました');
     }
 }
 
@@ -213,6 +244,11 @@ async function processFile(file) {
  * ファイル選択を解除
  */
 function removeFile() {
+    // 既存のオブジェクトURLがあれば解放
+    if (selectedFile && selectedFile.fileURL) {
+        URL.revokeObjectURL(selectedFile.fileURL);
+    }
+    
     selectedFile = null;
     const fileInput = document.getElementById('fileInput');
     const filePreview = document.getElementById('filePreview');
@@ -221,67 +257,30 @@ function removeFile() {
     filePreview.innerHTML = '';
     filePreview.classList.remove('show');
     
-    window.RishuApp.showNotification('ファイルを削除しました', 'info');
+    alert('ファイルを削除しました');
 }
-// --------------------------------------------------
-// 投稿ページ用（post.js）
-// --------------------------------------------------
 
-document.getElementById("postForm").addEventListener("submit", async function (e) {
-    e.preventDefault();
+// プレビュー表示に必要なユーティリティ関数
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
-    const username = document.getElementById("username").value.trim();
-    const grade = document.getElementById("grade").value.trim();
-    const comment = document.getElementById("comment").value.trim();
-    const file = document.getElementById("fileInput").files[0];
-
-    if (!username || !grade) {
-        alert("ユーザー名と学年は必須です。");
-        return;
-    }
-
-    if (!file) {
-        alert("ファイルをアップロードしてください。");
-        return;
-    }
-
-    // ファイル保存用のユニークなパス
-    const filePath = `${Date.now()}_${file.name}`;
-
-    // ① Storage にファイルをアップロード
-    const { data: fileData, error: fileError } = await supabase
-        .storage
-        .from("rishu-files")
-        .upload(filePath, file);
-
-    if (fileError) {
-        console.error("Storage Upload Error:", fileError);
-        alert("ファイルのアップロードに失敗しました。");
-        return;
-    }
-
-    // 公開URLを生成（public bucket なので誰でも見れる）
-    const fileUrl = `https://qlsqyymfamslyrzhcggn.supabase.co/storage/v1/object/public/rishu-files/${filePath}`;
-
-    // ② Database に投稿データを保存
-    const { data, error } = await supabase
-        .from("posts")
-        .insert([
-            {
-                username: username,
-                grade: grade,
-                comment: comment,
-                file_url: fileUrl,
-                created_at: new Date().toISOString()
-            }
-        ]);
-
-    if (error) {
-        console.error("DB Insert Error:", error);
-        alert("投稿の保存に失敗しました");
-        return;
-    }
-
-    alert("投稿が完了しました！");
-    window.location.href = "shared-courses.html";
-});
+// post.jsの古いロジックで使われていた未定義のグローバルオブジェクトの簡易的な代替
+if (typeof window.RishuApp === 'undefined') {
+    window.RishuApp = {
+        showNotification: (message, type) => {
+            console.log(`Notification (${type}): ${message}`);
+        },
+        fileToBase64: async (file) => {
+            throw new Error("Base64変換関数はSupabase投稿では使用しません");
+        },
+        getFileType: (data) => {
+             return data.startsWith('data:image/') ? 'image' : 'other';
+        },
+        formatFileSize: formatFileSize
+    };
+}
