@@ -2,8 +2,6 @@
 // 投稿ページの機能
 // ====================================
 
-let selectedFile = null;
-
 document.addEventListener('DOMContentLoaded', function() {
     initPostPage();
 });
