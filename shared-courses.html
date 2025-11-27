@@ -129,10 +129,16 @@
     <script src="js/main.js"></script>
     <script src="js/view.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
-        const SUPABASE_URL = "https://qlsqyymfamslyrzhcggn.supabase.co";      // ← あなたのURL
-        const SUPABASE_KEY = "public-anon-key-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsc3F5eW1mYW1zbHlyemhjZ2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MjA0NDEsImV4cCI6MjA3ODQ5NjQ0MX0._jEWZGK3yDZKy95jPibMFh7c9u3nnJxsIek0UrvRjbQ";      // ← あなたの鍵
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_URL = "https://qlsqyymfamslyrzhcggn.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsc3F5eW1mYW1zbHlyemhjZ2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MjA0NDEsImV4cCI6MjA3ODQ5NjQ0MX0._jEWZGK3yDZKy95jPibMFh7c9u3nnJxsIek0UrvRjbQ";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     </script>
+
+    <!-- あなたのJS -->
+    <script src="js/shared-courses.js"></script>
+
 </body>
 </html>

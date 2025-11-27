@@ -288,9 +288,14 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+// --------------------------------------------------
+// 投稿一覧ページ用（shared-courses.js）
+// --------------------------------------------------
+
 document.addEventListener("DOMContentLoaded", loadPosts);
 
 async function loadPosts() {
+
     const { data: posts, error } = await supabase
         .from("posts")
         .select("*")
@@ -298,6 +303,12 @@ async function loadPosts() {
 
     const container = document.getElementById("postsContainer");
     container.innerHTML = "";
+
+    if (error) {
+        console.error("DB Load Error:", error);
+        container.innerHTML = "<p>データの取得に失敗しました。</p>";
+        return;
+    }
 
     if (!posts || posts.length === 0) {
         container.innerHTML = "<p>まだ投稿がありません。</p>";
@@ -307,12 +318,15 @@ async function loadPosts() {
     posts.forEach(p => {
         const div = document.createElement("div");
         div.classList.add("post-card");
+
         div.innerHTML = `
             <h3>${p.username}（${p.grade}）</h3>
-            <p>${p.comment}</p>
-            <img src="${p.file_url}" style="max-width: 300px;">
-            <p>${new Date(p.created_at).toLocaleString()}</p>
+            <img src="${p.file_url}" class="post-image">
+            <p>${p.comment ?? ""}</p>
+            <small>${new Date(p.created_at).toLocaleString()}</small>
+            <hr>
         `;
+
         container.appendChild(div);
     });
 }

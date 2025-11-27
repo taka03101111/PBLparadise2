@@ -225,104 +225,62 @@ function removeFile() {
     
     window.RishuApp.showNotification('ファイルを削除しました', 'info');
 }
+// --------------------------------------------------
+// 投稿ページ用（post.js）
+// --------------------------------------------------
 
-document.getElementById("postForm").addEventListener("submit", async function(e) {
+document.getElementById("postForm").addEventListener("submit", async function (e) {
     e.preventDefault();
 
-    const username = document.getElementById("username").value;
-    const grade = document.getElementById("grade").value;
-    const comment = document.getElementById("comment").value;
+    const username = document.getElementById("username").value.trim();
+    const grade = document.getElementById("grade").value.trim();
+    const comment = document.getElementById("comment").value.trim();
     const file = document.getElementById("fileInput").files[0];
 
-    if (!file) {
-        alert("ファイルを選択してください");
+    if (!username || !grade) {
+        alert("ユーザー名と学年は必須です。");
         return;
     }
 
-    // ① Storage にアップロード（ファイル保存）
+    if (!file) {
+        alert("ファイルをアップロードしてください。");
+        return;
+    }
+
+    // ファイル保存用のユニークなパス
     const filePath = `${Date.now()}_${file.name}`;
-    const { data: storageData, error: storageError } = await supabase
+
+    // ① Storage にファイルをアップロード
+    const { data: fileData, error: fileError } = await supabase
         .storage
         .from("rishu-files")
         .upload(filePath, file);
 
-    if (storageError) {
-        alert("ファイルアップロードに失敗しました");
-        console.error(storageError);
+    if (fileError) {
+        console.error("Storage Upload Error:", fileError);
+        alert("ファイルのアップロードに失敗しました。");
         return;
     }
 
+    // 公開URLを生成（public bucket なので誰でも見れる）
     const fileUrl = `https://qlsqyymfamslyrzhcggn.supabase.co/storage/v1/object/public/rishu-files/${filePath}`;
 
-    // ② 投稿を Database に保存
+    // ② Database に投稿データを保存
     const { data, error } = await supabase
         .from("posts")
         .insert([
             {
-                username,
-                grade,
-                comment,
+                username: username,
+                grade: grade,
+                comment: comment,
                 file_url: fileUrl,
                 created_at: new Date().toISOString()
             }
         ]);
 
     if (error) {
-        alert("投稿に失敗しました");
-        console.error(error);
-        return;
-    }
-
-    alert("投稿が完了しました！");
-    window.location.href = "shared-courses.html";
-});
-
-// グローバルスコープに関数を公開
-window.removeFile = removeFile;
-document.getElementById("postForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-
-    const username = document.getElementById("username").value;
-    const grade = document.getElementById("grade").value;
-    const comment = document.getElementById("comment").value;
-    const file = document.getElementById("fileInput").files[0];
-
-    if (!file) {
-        alert("ファイルを選択してください");
-        return;
-    }
-
-    // ① Storage にアップロード（ファイル保存）
-    const filePath = `${Date.now()}_${file.name}`;
-    const { data: storageData, error: storageError } = await supabase
-        .storage
-        .from("rishu-files")
-        .upload(filePath, file);
-
-    if (storageError) {
-        alert("ファイルアップロードに失敗しました");
-        console.error(storageError);
-        return;
-    }
-
-    const fileUrl = `https://qlsqyymfamslyrzhcggn.supabase.co/storage/v1/object/public/rishu-files/${filePath}`;
-
-    // ② 投稿を Database に保存
-    const { data, error } = await supabase
-        .from("posts")
-        .insert([
-            {
-                username,
-                grade,
-                comment,
-                file_url: fileUrl,
-                created_at: new Date().toISOString()
-            }
-        ]);
-
-    if (error) {
-        alert("投稿に失敗しました");
-        console.error(error);
+        console.error("DB Insert Error:", error);
+        alert("投稿の保存に失敗しました");
         return;
     }
 
