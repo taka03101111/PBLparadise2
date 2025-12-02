@@ -2102,6 +2102,5 @@ body {
     max-width: 100%;
     height: auto;
     display: block;
-    margin-top: 10px;
-    border-radius: 6px; /* 角丸にしたい場合 */
 }
+
