@@ -44,8 +44,8 @@ async function loadPosts() {
         const fileUrl = p.file_url || '';
 
         if (fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
-             // 画像ファイル
-             fileContent = `<img src="${fileUrl}" class="post-image" alt="投稿画像">`;
+            fileContent = `<img src="${fileUrl}" class="post-image editable-size" alt="投稿画像">`;
+
         } else if (fileUrl.match(/\.pdf$/i)) {
              // PDFファイル
              fileContent = `<div class="post-file-preview pdf-preview">
