@@ -347,5 +347,11 @@
     </footer>
 
     <script src="js/my-registration.js"></script>
+    <script>
+    const SUPABASE_URL = "https://qlsqyymfamslyrzhcggn.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsc3F5eW1mYW1zbHlyemhjZ2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MjA0NDEsImV4cCI6MjA3ODQ5NjQ0MX0._jEWZGK3yDZKy95jPibMFh7c9u3nnJxsIek0UrvRjbQ";
+
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    </script>
 </body>
 </html>

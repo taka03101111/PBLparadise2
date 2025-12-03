@@ -342,3 +342,32 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+async function uploadCsv() {
+    const fileInput = document.getElementById("csvUpload");
+    const file = fileInput.files[0];
+    if (!file) return alert("CSV を選択してください");
+
+    // CSVテキストとして読み込み
+    const text = await file.text();
+    const rows = text.split("\n").map(row => row.split(","));
+
+    const headers = rows[0].map(h => h.trim());
+
+    const records = rows.slice(1).map(cols => {
+        return Object.fromEntries(
+            headers.map((h, i) => [h, cols[i]?.trim()])
+        );
+    });
+
+    // Supabaseに挿入
+    const { error } = await supabase
+        .from("my_courses")
+        .insert(records);
+
+    if (error) {
+        alert("アップロード失敗：" + error.message);
+    } else {
+        alert("アップロード成功！");
+    }
+}
+
