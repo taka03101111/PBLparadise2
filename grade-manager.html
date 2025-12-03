@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成績管理 - 名城大学 情報工学科</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    
+    <!-- 必要な外部ライブラリはここに残します -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-section">
+                    <h1 class="university-name">名城大学</h1>
+                    <p class="department-name">情報工学部 情報工学科</p>
+                </div>
+                <h2 class="system-title">履修登録システム</h2>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <div class="container">
+            <ul class="nav-list">
+                <li class="nav-item"><a href="index.html"><i class="fas fa-home"></i> <span>ホーム</span></a></li>
+                <li class="nav-item"><a href="shared-courses.html"><i class="fas fa-comments"></i> <span>履修情報共有</span></a></li>
+                <li class="nav-item"><a href="my-registration.html"><i class="fas fa-calendar-check"></i> <span>履修登録</span></a></li>
+                <li class="nav-item"><a href="syllabus.html"><i class="fas fa-book"></i> <span>シラバス検索</span></a></li>
+                <li class="nav-item active"><a href="grade-manager.html"><i class="fas fa-chart-line"></i> <span>成績管理</span></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <h2 class="page-title">
+                <i class="fas fa-chart-line"></i> 成績管理 (Excel連携)
+            </h2>
+
+            <div class="info-section">
+                <div class="info-box">
+                    <h3 class="info-title"><i class="fas fa-info-circle"></i> 自動保存モード</h3>
+                    <p>このブラウザ専用のIDで成績データを自動保存します。<br>
+                    <small>※ブラウザのキャッシュをクリアするとデータは消えます。</small></p>
+                </div>
+            </div>
+
+            <!-- ステップ1: アップロード -->
+            <section class="post-form-section">
+                <h3 class="section-subtitle">1. 成績Excelファイル (JCheck) を読み込む</h3>
+                <p class="mb-2">大学からダウンロードしたExcelファイルを選択してください。<br>データベースへ成績を上書き保存します。</p>
+                
+                <div class="form-group">
+                    <input type="file" id="fileInput" accept=".xlsx" class="form-control" style="padding: 10px;">
+                </div>
+                <div id="uploadStatus" class="mt-2" style="font-weight: bold; color: var(--primary-color);"></div>
+            </section>
+
+            <!-- ステップ2: ダウンロード -->
+            <section class="post-form-section">
+                <h3 class="section-subtitle">2. 最新データでExcelを出力</h3>
+                <p class="mb-2">データベースの最新成績データを使って、Excelファイルを更新・ダウンロードします。<br>※先に上の手順でファイルを読み込んでおく必要があります。</p>
+                
+                <button id="updateBtn" class="btn btn-primary" disabled>
+                    <i class="fas fa-file-export"></i> データを更新してダウンロード
+                </button>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-text">&copy; 2024 名城大学 情報工学部 情報工学科 履修登録システム</p>
+        </div>
+    </footer>
+
+    <!-- 作成したJSファイルをここで読み込みます -->
+    <script src="js/grade-manager.js"></script>
+</body>
+</html>
