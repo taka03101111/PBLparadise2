@@ -104,37 +104,47 @@ function createCard(course) {
 // ============================================
 // 詳細表示モーダル
 // ============================================
-function showDetail(id) {
-    const c = allSyllabus.find(item => item.id === id);
-    if (!c) return;
+async function showDetail(courseId) {
+    try {
+        // id に一致するデータだけ取得
+        const { data, error } = await supabase
+            .from("courses")         // ← あなたのテーブル名に合わせてある
+            .select("*")
+            .eq("id", courseId)
+            .single();
 
-    const html = `
-        <h3>${escapeHtml(c.name)}</h3>
+        if (error || !data) {
+            console.error(error);
+            showMessage("詳細データを取得できませんでした", "error");
+            return;
+        }
 
-        <div class="detail-grid">
+        const c = data;
 
-            <div class="detail-item">
-                <span class="detail-label">対象学年</span>
-                <span class="detail-value">${c.grade}年</span>
+        // HTML を組み立てる
+        const html = `
+            <h3 class="detail-title">${escapeHtml(c.name)}</h3>
+
+            <div class="detail-grid">
+                <div class="detail-item"><span class="detail-label">学年</span><span class="detail-value">${c.grade} 年</span></div>
+                <div class="detail-item"><span class="detail-label">学期</span><span class="detail-value">${escapeHtml(c.term)}</span></div>
             </div>
 
-            <div class="detail-item">
-                <span class="detail-label">開講学期</span>
-                <span class="detail-value">${escapeHtml(c.term)}</span>
-            </div>
+            ${section("授業概要", c.description)}
+            ${section("授業の流れ", c.flow)}
+            ${section("課題", c.homework)}
+            ${section("評価方法", c.evolution)}
+            ${section("難易度", c.difficulty)}
+            ${section("まとめ", c.summary)}
+        `;
 
-        </div>
+        document.getElementById("syllabusDetail").innerHTML = html;
+        document.getElementById("syllabusModal").classList.add("active");
 
-        ${section("授業概要", c.description)}
-        ${section("授業の流れ", c.flow)}
-        ${section("課題", c.homework)}
-        ${section("評価方法", c.evolution)}
-        ${section("難易度", c.difficulty)}
-        ${section("まとめ", c.summary)}
-    `;
-
-    document.getElementById("syllabusDetail").innerHTML = html;
-    document.getElementById("syllabusModal").classList.add("active");
+    } catch (err) {
+        console.error(err);
+        showMessage("詳細データ取得時にエラーが発生しました", "error");
+    }
 }
 
 function section(title, value) {
@@ -146,6 +156,7 @@ function section(title, value) {
         </div>
     `;
 }
+
 
 // モーダル閉じる
 function closeSyllabusModal() {
