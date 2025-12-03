@@ -30,7 +30,7 @@ function setupEventListeners() {
 async function loadSyllabus() {
     try {
         const { data, error } = await supabase
-            .from("syllabus")
+            .from("courses")
             .select("*");
 
         if (error) {
