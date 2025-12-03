@@ -60,24 +60,23 @@
             <p class="page-description">
                 時間割形式で履修科目を管理できます。科目を追加・削除して、自分の時間割を作成しましょう。
             </p>
+            <input type="file" id="csvUpload" accept=".csv">
+            <button onclick="uploadCsv()">アップロード</button>
+
 
             <!-- 学期選択・単位数表示 -->
             <div class="registration-controls">
                 <div class="semester-selector">
                     <label for="semesterSelect">学年選択:</label>
                     <select id="semesterSelect">
-                        <option value="1年">1年</option>
-                        <option value="2年">2年</option>
-                        <option value="3年">3年</option>
-                        <option value="4年">4年</option>
-                    </select>
-                </div>
-                <div class="semester-selector">
-                    <label for="semesterSelect">学期選択:</label>
-                    <select id="semesterSelect">
-                        <option value="前期">前期</option>
-                        <option value="後期">後期</option>
-                        <option value="通年">通年</option>
+                        <option value="1年">1年前期</option>
+                        <option value="1年">1年後期</option>
+                        <option value="2年">2年前期</option>
+                        <option value="2年">2年後期</option>
+                        <option value="3年">3年前期</option>
+                        <option value="3年">3年後期</option>
+                        <option value="4年">4年前期</option>
+                        <option value="4年">4年後期</option>
                     </select>
                 </div>
                 <div class="credits-summary">
