@@ -46,12 +46,22 @@ function setupEventListeners() {
 }
 
 // シラバスデータの読み込み
+// シラバスデータの読み込み（Supabase版）
 async function loadSyllabus() {
     try {
-        const response = await fetch('tables/syllabus?limit=100');
-        const data = await response.json();
-        allSyllabus = data.data || [];
-        
+        const { data, error } = await supabase
+            .from("syllabus")
+            .select("*")
+            .limit(500);   // 必要に応じて増やせる
+
+        if (error) {
+            console.error("Supabase 読み込みエラー:", error);
+            showMessage('シラバスの読み込みに失敗しました。', 'error');
+            return;
+        }
+
+        allSyllabus = data || [];
+
         if (allSyllabus.length === 0) {
             document.getElementById('syllabusResults').innerHTML = `
                 <div class="empty-message">
@@ -60,11 +70,13 @@ async function loadSyllabus() {
                 </div>
             `;
         }
+
     } catch (error) {
-        console.error('シラバスの読み込みエラー:', error);
+        console.error('読み込み処理エラー:', error);
         showMessage('シラバスの読み込みに失敗しました。', 'error');
     }
 }
+
 
 // 検索実行
 function performSearch() {
