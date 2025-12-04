@@ -60,24 +60,23 @@
             <p class="page-description">
                 時間割形式で履修科目を管理できます。科目を追加・削除して、自分の時間割を作成しましょう。
             </p>
+            <input type="file" id="csvUpload" accept=".csv">
+            <button onclick="uploadCsv()">アップロード</button>
+
 
             <!-- 学期選択・単位数表示 -->
             <div class="registration-controls">
                 <div class="semester-selector">
                     <label for="semesterSelect">学年選択:</label>
                     <select id="semesterSelect">
-                        <option value="1年">1年</option>
-                        <option value="2年">2年</option>
-                        <option value="3年">3年</option>
-                        <option value="4年">4年</option>
-                    </select>
-                </div>
-                <div class="semester-selector">
-                    <label for="semesterSelect">学期選択:</label>
-                    <select id="semesterSelect">
-                        <option value="前期">前期</option>
-                        <option value="後期">後期</option>
-                        <option value="通年">通年</option>
+                        <option value="1年">1年前期</option>
+                        <option value="1年">1年後期</option>
+                        <option value="2年">2年前期</option>
+                        <option value="2年">2年後期</option>
+                        <option value="3年">3年前期</option>
+                        <option value="3年">3年後期</option>
+                        <option value="4年">4年前期</option>
+                        <option value="4年">4年後期</option>
                     </select>
                 </div>
                 <div class="credits-summary">
@@ -348,5 +347,14 @@
     </footer>
 
     <script src="js/my-registration.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    const supabase = supabase.createClient(
+        "https://qlsqyymfamslyrzhcggn.supabase.co",          // ← URL
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsc3F5eW1mYW1zbHlyemhjZ2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MjA0NDEsImV4cCI6MjA3ODQ5NjQ0MX0._jEWZGK3yDZKy95jPibMFh7c9u3nnJxsIek0UrvRjbQ"                     // ← anon key（公開OK）
+    );
+    </script>
+
 </body>
 </html>

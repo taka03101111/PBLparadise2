@@ -1,388 +1,186 @@
 // ============================================
-// シラバス検索ページのJavaScript
+// シラバス検索ページのJavaScript（Supabase対応）
 // ============================================
 
-// グローバル変数
 let allSyllabus = [];
 let currentFilters = {
-    year: '',
-    semester: '',
-    category: '',
-    dayOfWeek: '',
-    period: '',
-    credits: '',
-    keyword: ''
+    keyword: '',
+    grade: '',
+    term: ''
 };
 
-// ページ読み込み時の初期化
-document.addEventListener('DOMContentLoaded', function() {
+// ページ読み込み
+document.addEventListener('DOMContentLoaded', () => {
     loadSyllabus();
     setupEventListeners();
 });
 
-// イベントリスナーの設定
+// イベント設定
 function setupEventListeners() {
-    // 検索ボタン
     document.getElementById('searchBtn').addEventListener('click', performSearch);
-    
-    // Enterキーで検索
-    document.getElementById('searchInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            performSearch();
-        }
+
+    document.getElementById('searchInput').addEventListener('keypress', e => {
+        if (e.key === 'Enter') performSearch();
     });
-    
-    // 詳細フィルタートグル
-    document.getElementById('toggleFilters').addEventListener('click', function() {
-        const filterPanel = document.getElementById('filterPanel');
-        filterPanel.classList.toggle('active');
-    });
-    
-    // フィルター適用
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
-    
-    // フィルタークリア
-    document.getElementById('clearFilters').addEventListener('click', clearFilters);
 }
 
-// シラバスデータの読み込み
+// ============================================
+// Supabase からデータ取得
+// ============================================
 async function loadSyllabus() {
     try {
-        const response = await fetch('tables/syllabus?limit=100');
-        const data = await response.json();
-        allSyllabus = data.data || [];
-        
-        if (allSyllabus.length === 0) {
-            document.getElementById('syllabusResults').innerHTML = `
-                <div class="empty-message">
-                    <i class="fas fa-info-circle"></i>
-                    <p>シラバスデータがまだ登録されていません。</p>
-                </div>
-            `;
+        const { data, error } = await supabase
+            .from("courses")
+            .select("*");
+
+        if (error) {
+            console.error(error);
+            showMessage("シラバスの読み込みに失敗しました", "error");
+            return;
         }
-    } catch (error) {
-        console.error('シラバスの読み込みエラー:', error);
-        showMessage('シラバスの読み込みに失敗しました。', 'error');
+
+        allSyllabus = data;
+        displayResults(data);
+
+    } catch (err) {
+        console.error(err);
+        showMessage("読み込み中にエラーが発生しました", "error");
     }
 }
 
-// 検索実行
+// ============================================
+// キーワード検索（name で検索）
+// ============================================
 function performSearch() {
     const keyword = document.getElementById('searchInput').value.toLowerCase();
     currentFilters.keyword = keyword;
-    
-    const filtered = filterSyllabus(allSyllabus);
-    displayResults(filtered);
-}
 
-// フィルター適用
-function applyFilters() {
-    currentFilters = {
-        year: document.getElementById('filterYearSyllabus').value,
-        semester: document.getElementById('filterSemesterSyllabus').value,
-        category: document.getElementById('filterCategorySyllabus').value,
-        dayOfWeek: document.getElementById('filterDayOfWeek').value,
-        period: document.getElementById('filterPeriod').value,
-        credits: document.getElementById('filterCredits').value,
-        keyword: document.getElementById('searchInput').value.toLowerCase()
-    };
-    
-    const filtered = filterSyllabus(allSyllabus);
-    displayResults(filtered);
-}
-
-// フィルタークリア
-function clearFilters() {
-    document.getElementById('filterYearSyllabus').value = '';
-    document.getElementById('filterSemesterSyllabus').value = '';
-    document.getElementById('filterCategorySyllabus').value = '';
-    document.getElementById('filterDayOfWeek').value = '';
-    document.getElementById('filterPeriod').value = '';
-    document.getElementById('filterCredits').value = '';
-    document.getElementById('searchInput').value = '';
-    
-    currentFilters = {
-        year: '',
-        semester: '',
-        category: '',
-        dayOfWeek: '',
-        period: '',
-        credits: '',
-        keyword: ''
-    };
-    
-    document.getElementById('syllabusResults').innerHTML = `
-        <div class="empty-message">
-            <i class="fas fa-info-circle"></i>
-            <p>検索キーワードを入力するか、フィルターを設定して検索してください。</p>
-        </div>
-    `;
-    
-    document.getElementById('resultsCount').textContent = '0';
-}
-
-// シラバスのフィルタリング
-function filterSyllabus(syllabusData) {
-    return syllabusData.filter(course => {
-        // 学年フィルター
-        if (currentFilters.year && course.year !== parseInt(currentFilters.year)) {
-            return false;
-        }
-        
-        // 学期フィルター
-        if (currentFilters.semester && course.semester !== currentFilters.semester) {
-            return false;
-        }
-        
-        // 科目区分フィルター
-        if (currentFilters.category && course.category !== currentFilters.category) {
-            return false;
-        }
-        
-        // 曜日フィルター
-        if (currentFilters.dayOfWeek && course.day_of_week !== currentFilters.dayOfWeek) {
-            return false;
-        }
-        
-        // 時限フィルター
-        if (currentFilters.period && course.period !== parseInt(currentFilters.period)) {
-            return false;
-        }
-        
-        // 単位数フィルター
-        if (currentFilters.credits && course.credits !== parseInt(currentFilters.credits)) {
-            return false;
-        }
-        
-        // キーワード検索
-        if (currentFilters.keyword) {
-            const searchText = `
-                ${course.course_name} 
-                ${course.instructor} 
-                ${course.overview || ''} 
-                ${course.keywords || ''}
-            `.toLowerCase();
-            
-            if (!searchText.includes(currentFilters.keyword)) {
-                return false;
-            }
-        }
-        
-        return true;
+    const filtered = allSyllabus.filter(item => {
+        return item.name.toLowerCase().includes(keyword);
     });
+
+    displayResults(filtered);
 }
 
-// 検索結果の表示
-function displayResults(results) {
-    const resultsDiv = document.getElementById('syllabusResults');
-    const resultsCount = document.getElementById('resultsCount');
-    
-    resultsCount.textContent = results.length;
-    
-    if (results.length === 0) {
-        resultsDiv.innerHTML = `
+// ============================================
+// 結果表示
+// ============================================
+function displayResults(list) {
+    const container = document.getElementById("syllabusResults");
+    const count = document.getElementById("resultsCount");
+
+    count.textContent = list.length;
+
+    if (list.length === 0) {
+        container.innerHTML = `
             <div class="empty-message">
                 <i class="fas fa-search"></i>
-                <p>検索条件に一致する科目が見つかりませんでした。</p>
+                <p>一致する科目がありませんでした。</p>
             </div>
         `;
         return;
     }
-    
-    resultsDiv.innerHTML = results.map(course => createSyllabusCard(course)).join('');
+
+    container.innerHTML = list.map(course => createCard(course)).join("");
 }
 
-// シラバスカードの作成
-function createSyllabusCard(course) {
-    const days = { '月': '月曜', '火': '火曜', '水': '水曜', '木': '木曜', '金': '金曜' };
-    const overview = course.overview ? 
-        (course.overview.length > 100 ? course.overview.substring(0, 100) + '...' : course.overview) : 
-        '授業概要はありません。';
-    
+// ============================================
+// カード生成
+// ============================================
+function createCard(course) {
     return `
-        <div class="syllabus-card" onclick="showSyllabusDetail('${course.id}')">
+        <div class="syllabus-card" onclick="showDetail('${course.id}')">
             <div class="syllabus-header">
-                <h4 class="syllabus-title">${escapeHtml(course.course_name)}</h4>
-                <span class="syllabus-code">${escapeHtml(course.course_code || 'N/A')}</span>
+                <h4 class="syllabus-title">${escapeHtml(course.name)}</h4>
+                <span class="syllabus-code">${course.grade}年 / ${course.term}</span>
             </div>
-            
-            <div class="syllabus-info">
-                <span><i class="fas fa-chalkboard-teacher"></i> ${escapeHtml(course.instructor)}</span>
-                <span><i class="fas fa-graduation-cap"></i> ${course.year}年生</span>
-                <span><i class="fas fa-calendar"></i> ${escapeHtml(course.semester)}</span>
-                <span><i class="fas fa-tag"></i> ${escapeHtml(course.category)}</span>
-                <span><i class="fas fa-certificate"></i> ${course.credits}単位</span>
-                ${course.day_of_week ? `<span><i class="fas fa-clock"></i> ${days[course.day_of_week]}日 ${course.period}限</span>` : ''}
-            </div>
-            
             <div class="syllabus-overview">
-                ${escapeHtml(overview)}
+                ${escapeHtml(course.description || "説明なし")}
             </div>
         </div>
     `;
 }
 
-// シラバス詳細表示
-function showSyllabusDetail(courseId) {
-    const course = allSyllabus.find(c => c.id === courseId);
-    if (!course) return;
-    
-    const days = { '月': '月曜', '火': '火曜', '水': '水曜', '木': '木曜', '金': '金曜' };
-    
-    const detailHtml = `
-        <div class="detail-section">
-            <h3 class="detail-title">${escapeHtml(course.course_name)}</h3>
+// ============================================
+// 詳細表示モーダル
+// ============================================
+async function showDetail(courseId) {
+    try {
+        // id に一致するデータだけ取得
+        const { data, error } = await supabase
+            .from("courses")         // ← あなたのテーブル名に合わせてある
+            .select("*")
+            .eq("id", courseId)
+            .single();
+
+        if (error || !data) {
+            console.error(error);
+            showMessage("詳細データを取得できませんでした", "error");
+            return;
+        }
+
+        const c = data;
+
+        // HTML を組み立てる
+        const html = `
+            <h3 class="detail-title">${escapeHtml(c.name)}</h3>
+
             <div class="detail-grid">
-                <div class="detail-item">
-                    <span class="detail-label">授業コード</span>
-                    <span class="detail-value">${escapeHtml(course.course_code || 'N/A')}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">教員名</span>
-                    <span class="detail-value">${escapeHtml(course.instructor)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">対象学年</span>
-                    <span class="detail-value">${course.year}年生</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">開講学期</span>
-                    <span class="detail-value">${escapeHtml(course.semester)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">科目区分</span>
-                    <span class="detail-value">${escapeHtml(course.category)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">単位数</span>
-                    <span class="detail-value">${course.credits}単位</span>
-                </div>
-                ${course.day_of_week ? `
-                    <div class="detail-item">
-                        <span class="detail-label">曜日・時限</span>
-                        <span class="detail-value">${days[course.day_of_week]}日 ${course.period}限</span>
-                    </div>
-                ` : ''}
-                ${course.room ? `
-                    <div class="detail-item">
-                        <span class="detail-label">教室</span>
-                        <span class="detail-value">${escapeHtml(course.room)}</span>
-                    </div>
-                ` : ''}
+                <div class="detail-item"><span class="detail-label">学年</span><span class="detail-value">${c.grade} 年</span></div>
+                <div class="detail-item"><span class="detail-label">学期</span><span class="detail-value">${escapeHtml(c.term)}</span></div>
             </div>
+
+            ${section("授業概要", c.description)}
+            ${section("授業の流れ", c.flow)}
+            ${section("課題", c.homework)}
+            ${section("評価方法", c.evolution)}
+            ${section("難易度", c.difficulty)}
+            ${section("まとめ", c.summary)}
+        `;
+
+        document.getElementById("syllabusDetail").innerHTML = html;
+        document.getElementById("syllabusModal").classList.add("active");
+
+    } catch (err) {
+        console.error(err);
+        showMessage("詳細データ取得時にエラーが発生しました", "error");
+    }
+}
+
+function section(title, value) {
+    if (!value) return "";
+    return `
+        <div class="detail-section">
+            <h4 class="detail-title">${title}</h4>
+            <div class="detail-content">${escapeHtml(value)}</div>
         </div>
-        
-        ${course.overview ? `
-            <div class="detail-section">
-                <h4 class="detail-title">授業概要</h4>
-                <div class="detail-content">${escapeHtml(course.overview)}</div>
-            </div>
-        ` : ''}
-        
-        ${course.objectives ? `
-            <div class="detail-section">
-                <h4 class="detail-title">到達目標</h4>
-                <div class="detail-content">${escapeHtml(course.objectives)}</div>
-            </div>
-        ` : ''}
-        
-        ${course.evaluation ? `
-            <div class="detail-section">
-                <h4 class="detail-title">評価方法</h4>
-                <div class="detail-content">${escapeHtml(course.evaluation)}</div>
-            </div>
-        ` : ''}
-        
-        ${course.textbook ? `
-            <div class="detail-section">
-                <h4 class="detail-title">教科書</h4>
-                <div class="detail-content">${escapeHtml(course.textbook)}</div>
-            </div>
-        ` : ''}
-        
-        ${course.keywords ? `
-            <div class="detail-section">
-                <h4 class="detail-title">キーワード</h4>
-                <div class="detail-content">${escapeHtml(course.keywords)}</div>
-            </div>
-        ` : ''}
     `;
-    
-    document.getElementById('syllabusDetail').innerHTML = detailHtml;
-    document.getElementById('syllabusModal').classList.add('active');
 }
 
-// モーダルを閉じる
+
+// モーダル閉じる
 function closeSyllabusModal() {
-    document.getElementById('syllabusModal').classList.remove('active');
-}
-
-// メッセージ表示
-function showMessage(message, type = 'success') {
-    const messageDiv = document.createElement('div');
-    messageDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background-color: ${type === 'success' ? '#10b981' : '#ef4444'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-    `;
-    messageDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-        ${message}
-    `;
-    
-    document.body.appendChild(messageDiv);
-    
-    setTimeout(() => {
-        messageDiv.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => messageDiv.remove(), 300);
-    }, 3000);
+    document.getElementById("syllabusModal").classList.remove("active");
 }
 
 // HTMLエスケープ
 function escapeHtml(text) {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
 }
 
-// モーダル外クリックで閉じる
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('syllabusModal');
-    if (e.target === modal) {
-        closeSyllabusModal();
-    }
-});
-
-// アニメーション用CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
+// メッセージ表示
+function showMessage(msg, type = "success") {
+    const el = document.createElement("div");
+    el.style.cssText = `
+        position: fixed; top:20px; right:20px;
+        padding: 1rem 1.5rem;
+        background: ${type === "success" ? "#10b981" : "#ef4444"};
+        color: #fff; border-radius: 8px;
+        z-index:9999;
+    `;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+}
