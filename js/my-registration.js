@@ -50,10 +50,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. イベントリスナー設定
     setupEventListeners();
 
-    // 4. 学籍番号の復元（あれば）
+    // 4. 前回の学籍番号とクラス種別を復元
     const savedStudentNum = localStorage.getItem('grade_manager_student_num');
     if (savedStudentNum) {
         document.getElementById('studentNumberInput').value = savedStudentNum;
+    }
+
+    
+    const savedClassType = localStorage.getItem('grade_manager_class_type');
+    if (savedClassType) {
+        // 状態を更新
+        state.classType = savedClassType;
+        
+        // ラジオボタンの見た目を更新
+        const radioToSelect = document.querySelector(`input[name="classType"][value="${savedClassType}"]`);
+        if (radioToSelect) {
+            radioToSelect.checked = true;
+        }
     }
 
     // 5. 描画
@@ -88,7 +101,9 @@ function setupEventListeners() {
     });
     document.querySelectorAll('input[name="classType"]').forEach(r => {
         r.addEventListener('change', (e) => { 
-            state.classType = e.target.value; renderTimetable(); 
+            state.classType = e.target.value;
+            localStorage.setItem('grade_manager_class_type', state.classType);
+            renderTimetable(); 
         });
     });
 
@@ -211,7 +226,7 @@ function renderTimetable() {
                 card.className = `subject-card ${cardClass}`;
                 
                 // クリックで編集モーダルへ
-                card.onclick = () => openScoreModal(subj.subject_name, currentGrade ? currentGrade.score : null);
+                card.onclick = () => openScoreModal(subj, currentGrade ? currentGrade.score : null);
 
                 // カードの中身
                 let html = `<div style="font-weight:600; margin-bottom:4px;">${subj.subject_name}</div>`;
@@ -240,10 +255,51 @@ function renderTimetable() {
 // --- 点数編集モーダル ---
 let currentEditingSubject = null;
 
-function openScoreModal(subjectName, currentScore) {
-    currentEditingSubject = subjectName;
-    document.getElementById('modalSubjectName').textContent = subjectName;
+function openScoreModal(subjectData, currentScore) {
+    // 保存処理のために科目名をグローバル変数にセット
+    currentEditingSubject = subjectData.subject_name;
+
+    // 1. 科目名セット
+    document.getElementById('modalSubjectName').textContent = subjectData.subject_name;
+    
+    // 2. 点数セット
     document.getElementById('modalScoreInput').value = currentScore !== null ? currentScore : '';
+
+    // 3. 科目区分 (category) セット
+    const categoryEl = document.getElementById('modalCategory');
+    categoryEl.textContent = subjectData.category || '指定なし';
+
+    // 4. プログラムタグ (program_tags) セット
+    const tagsContainer = document.getElementById('modalTags');
+    tagsContainer.innerHTML = ''; // 一旦クリア
+
+    // JSONBデータはSupabaseから配列として返ってくることを想定
+    // 例: ["JABEE", "AIプログラム"]
+    const tags = subjectData.program_tags;
+
+    // nullでなく、オブジェクトであり、かつ中身（キー）が存在するかチェック
+    if (tags && typeof tags === 'object' && Object.keys(tags).length > 0) {
+        
+        // キーと値のペアを取り出してループ (例: key="HM", val="◎")
+        Object.entries(tags).forEach(([key, val]) => {
+            const badge = document.createElement('span');
+            badge.className = 'program-badge';
+            
+            // 表示形式: "HM : ◎" のように表示
+            badge.textContent = `${key} : ${val}`;
+            
+            tagsContainer.appendChild(badge);
+        });
+
+    } else {
+        // データがない、または空オブジェクト {} の場合
+        const noTag = document.createElement('span');
+        noTag.className = 'no-tags';
+        noTag.textContent = '該当なし';
+        tagsContainer.appendChild(noTag);
+    }
+
+    // モーダル表示
     document.getElementById('scoreModal').classList.add('active');
 }
 

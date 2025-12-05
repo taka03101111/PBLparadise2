@@ -52,6 +52,22 @@
             margin-top: 4px;
         }
         
+        .program-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background-color: #e0e7ff; /* 薄い藍色 */
+            color: #4338ca;            /* 濃い藍色 */
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid #c7d2fe;
+        }
+        /* タグがない場合のメッセージ用 */
+        .no-tags {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
         /* コントロールエリア */
         .controls-area { 
             background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; 
@@ -213,7 +229,24 @@
                 <button class="modal-close" onclick="closeScoreModal()"><i class="fas fa-times"></i></button>
             </div>
             <div style="padding: 20px;">
-                <p style="margin-bottom: 15px;">点数を修正します（0〜100）</p>
+                            <!-- ▼▼▼ 追加：科目詳細エリア ▼▼▼ -->
+            <div class="subject-details" style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                
+                <!-- 科目区分 -->
+                <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight: bold;">科目区分:</span>
+                    <span id="modalCategory" style="font-size: 0.9rem; color: #334155;">-</span>
+                </div>
+
+                <!-- プログラムタグ -->
+                <div>
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; display: block; margin-bottom: 4px;">プログラム・タグ:</span>
+                    <div id="modalTags" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <!-- JSでバッジを生成します -->
+                    </div>
+                </div>
+            </div>
+                <p style="margin-bottom: 15px;">成績入力（0〜100）</p>
                 <input type="number" id="modalScoreInput" class="form-control" style="width: 100%; padding: 10px; font-size: 1.2rem; margin-bottom: 20px;" min="0" max="100">
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button class="btn btn-secondary" onclick="closeScoreModal()">キャンセル</button>
