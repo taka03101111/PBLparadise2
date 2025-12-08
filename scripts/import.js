@@ -2,8 +2,8 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-const supabaseUrl = 'https://nvtbiqmzxuuxsigluowc.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52dGJpcW16eHV1eHNpZ2x1b3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1Mzk3ODQsImV4cCI6MjA3OTExNTc4NH0.5fEqsyepJK92NL2GvquPZZcrDu6h4Ee7heU3q3A3mU8';
+const supabaseUrl = 'https://qlsqyymfamslyrzhcggn.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsc3F5eW1mYW1zbHlyemhjZ2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MjA0NDEsImV4cCI6MjA3ODQ5NjQ0MX0._jEWZGK3yDZKy95jPibMFh7c9u3nnJxsIek0UrvRjbQ';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -36,8 +36,9 @@ async function importJsonFiles() {
       subject_name: item['授業名'],
       credits: item['単位数'],
       category: item['種類'],
-      program_designation: item['プログラム指定'],
-      semesters: item['開講時期']
+      program_tags: item['プログラム指定']
+      //program_designation: item['プログラム指定'],
+      //semesters: item['開講時期']
     }));
 
     // 4. 送信（100件ずつ）
@@ -46,7 +47,7 @@ async function importJsonFiles() {
       const chunk = formattedData.slice(i, i + chunkSize);
       
       const { error } = await supabase
-        .from('course_catalog')
+        .from('course_details')
         .upsert(chunk, { onConflict: 'subject_name' });
 
       if (error) throw error;
