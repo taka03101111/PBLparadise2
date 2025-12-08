@@ -56,13 +56,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('studentNumberInput').value = savedStudentNum;
     }
 
-    
     const savedClassType = localStorage.getItem('grade_manager_class_type');
     if (savedClassType) {
-        // 状態を更新
         state.classType = savedClassType;
-        
-        // ラジオボタンの見た目を更新
         const radioToSelect = document.querySelector(`input[name="classType"][value="${savedClassType}"]`);
         if (radioToSelect) {
             radioToSelect.checked = true;
@@ -92,7 +88,6 @@ async function fetchUserGrades() {
 
 // --- イベントリスナー ---
 function setupEventListeners() {
-    // 表示条件の変更
     document.getElementById('yearSelect').addEventListener('change', (e) => { 
         state.year = parseInt(e.target.value); renderTimetable(); 
     });
@@ -107,13 +102,9 @@ function setupEventListeners() {
         });
     });
 
-    // 1. ファイル読み込み（インポート用）
     document.getElementById('fileInput').addEventListener('change', handleFileUpload);
 
-    // 2. Excel出力ボタンが押されたら、隠しファイル入力をクリックさせる
     document.getElementById('exportBtn').addEventListener('click', () => {
-        // ※データがなくても出力したいケースがあるかもしれないのでチェックは任意ですが、
-        // 親切にするなら警告を出しても良いです
         if (state.userGrades.length === 0) {
             alert('出力する成績データがありません。');
             return;
@@ -121,57 +112,46 @@ function setupEventListeners() {
         document.getElementById('exportFileInput').click();
     });
 
-    // 3. 出力用ファイルが選択されたら、書き込み処理を実行
+    document.getElementById('deleteAllBtn').addEventListener('click', handleDeleteAll);
+
     document.getElementById('exportFileInput').addEventListener('change', handleExportWithUpload);
 
     const studentInput = document.getElementById('studentNumberInput');
     const importLabel = document.getElementById('importExcelLabel');
 
-        // ボタンの有効/無効を切り替える関数
     const updateImportButtonState = () => {
         if (studentInput.value.trim().length > 0) {
-            // 入力があれば disabled クラスを外す（押せるようになる）
             importLabel.classList.remove('disabled');
         } else {
-            // 空なら disabled クラスを付ける（押せなくなる）
             importLabel.classList.add('disabled');
         }
     };
 
-    // 学籍番号に入力があるたびにチェックを実行
     studentInput.addEventListener('input', updateImportButtonState);
-
-    // ページ読み込み時に一度チェック（前回入力した番号が復元される場合があるため）
-    // 少し遅延させないと、localStorageからの復元より先に走ってしまうことがあるため注意
     setTimeout(updateImportButtonState, 100);
 }
 
-// 学期を数値化して比較できるようにするヘルパー関数
-// 例: "1年前期" -> 10, "1年後期" -> 15, "2年前期" -> 20 ...
 function getSemesterValue(semesterStr) {
     if (!semesterStr) return 0;
-    const year = parseInt(semesterStr); // "1年..." -> 1
+    const year = parseInt(semesterStr); 
     const isLate = semesterStr.includes('後期');
     return year * 10 + (isLate ? 5 : 0);
 }
 
 // --- 時間割描画ロジック ---
 function renderTimetable() {
-    // タイトル更新
     document.getElementById('timetableTitle').textContent = 
         `${state.year}年 ${state.semester} の時間割 (クラス: ${state.classType})`;
 
     const tbody = document.getElementById('timetableBody');
     tbody.innerHTML = '';
 
-    // 現在表示している学期の数値（比較用）
     const currentViewSemesterStr = `${state.year}年${state.semester}`;
     const currentViewValue = getSemesterValue(currentViewSemesterStr);
 
     PERIODS.forEach(period => {
         const tr = document.createElement('tr');
         
-        // 左端：時限
         const th = document.createElement('td');
         th.textContent = `${period}限`;
         th.style.textAlign = 'center';
@@ -180,11 +160,9 @@ function renderTimetable() {
         th.style.background = '#f3f4f6';
         tr.appendChild(th);
 
-        // 各曜日
         DAYS.forEach(day => {
             const td = document.createElement('td');
             
-            // このマスに表示すべき科目を抽出 (マスターデータから)
             const subjects = state.masterData.filter(m => 
                 m.year === state.year &&
                 m.semester === state.semester &&
@@ -194,18 +172,12 @@ function renderTimetable() {
             );
 
             subjects.forEach(subj => {
-                // 1. この科目の全成績データを抽出（過去の履歴含む）
                 const allGradesForSubject = state.userGrades.filter(g => g.subject_name === subj.subject_name);
-
-                // 2. 「現在の学期」に該当する成績を探す
                 const currentGrade = allGradesForSubject.find(g => g.semester === currentViewSemesterStr);
                 
-                // 3. 再履修チェック:
-                // 「現在の学期」のデータがあり、かつ「それより過去」のデータも存在する場合
                 let isRetake = false;
                 if (currentGrade) {
                     const hasOlderGrade = allGradesForSubject.some(g => {
-                        // 学期情報があり、かつ現在の学期より数値が小さい（過去である）
                         return g.semester && getSemesterValue(g.semester) < currentViewValue;
                     });
                     if (hasOlderGrade) {
@@ -213,22 +185,19 @@ function renderTimetable() {
                     }
                 }
 
-                // クラス名の決定
-                let cardClass = 'master'; // デフォルト（未履修）
+                let cardClass = 'master'; 
                 if (isRetake) {
-                    cardClass = 'retake'; // 再履修（黄色）
+                    cardClass = 'retake'; 
                 } else if (currentGrade) {
-                    cardClass = 'registered'; // 通常履修（青）
+                    cardClass = 'registered'; 
                 }
 
-                // カード作成
                 const card = document.createElement('div');
                 card.className = `subject-card ${cardClass}`;
                 
-                // クリックで編集モーダルへ
-                card.onclick = () => openScoreModal(subj, currentGrade ? currentGrade.score : null);
+                // ★修正点：成績データ(currentGrade)を渡す
+                card.onclick = () => openScoreModal(subj, currentGrade);
 
-                // カードの中身
                 let html = `<div style="font-weight:600; margin-bottom:4px;">${subj.subject_name}</div>`;
                 
                 if (currentGrade && currentGrade.score !== null) {
@@ -237,7 +206,6 @@ function renderTimetable() {
                     html += `<span class="score-badge" style="background:#aaa;">履修中</span>`;
                 }
                 
-                // 再履修マークを付ける場合（お好みで）
                 if (isRetake) {
                     html += `<span style="font-size:0.7rem; color:#d97706; font-weight:bold; position:absolute; bottom:5px; left:5px;">再履修</span>`;
                 }
@@ -255,48 +223,51 @@ function renderTimetable() {
 // --- 点数編集モーダル ---
 let currentEditingSubject = null;
 
-function openScoreModal(subjectData, currentScore) {
-    // 保存処理のために科目名をグローバル変数にセット
+function openScoreModal(subjectData, currentGrade) {
+    // 1. 科目名を保存・表示（★前回抜けていた部分を追加）
     currentEditingSubject = subjectData.subject_name;
-
-    // 1. 科目名セット
     document.getElementById('modalSubjectName').textContent = subjectData.subject_name;
-    
-    // 2. 点数セット
+
+    // 2. 削除ボタンの表示制御（★エラー回避のため関数の先頭に移動！）
+    const deleteBtn = document.getElementById('deleteScoreBtn');
+    if (currentGrade) {
+        // 成績データが存在するなら表示
+        deleteBtn.style.display = 'block';
+    } else {
+        // 未履修なら非表示
+        deleteBtn.style.display = 'none';
+    }
+
+    // 3. 点数セット
+    // currentGradeがundefinedの場合も考慮して安全に取得
+    const currentScore = (currentGrade && currentGrade.score !== null) ? currentGrade.score : null;
     document.getElementById('modalScoreInput').value = currentScore !== null ? currentScore : '';
 
-    // 3. 科目区分 (category) セット
+    // 4. 科目区分 (category) セット
     const categoryEl = document.getElementById('modalCategory');
     categoryEl.textContent = subjectData.category || '指定なし';
 
-    // 4. プログラムタグ (program_tags) セット
+    // 5. プログラムタグ (program_tags) セット
     const tagsContainer = document.getElementById('modalTags');
-    tagsContainer.innerHTML = ''; // 一旦クリア
+    tagsContainer.innerHTML = ''; 
 
-    // JSONBデータはSupabaseから配列として返ってくることを想定
-    // 例: ["JABEE", "AIプログラム"]
-    const tags = subjectData.program_tags;
-
-    // nullでなく、オブジェクトであり、かつ中身（キー）が存在するかチェック
-    if (tags && typeof tags === 'object' && Object.keys(tags).length > 0) {
-        
-        // キーと値のペアを取り出してループ (例: key="HM", val="◎")
-        Object.entries(tags).forEach(([key, val]) => {
-            const badge = document.createElement('span');
-            badge.className = 'program-badge';
-            
-            // 表示形式: "HM : ◎" のように表示
-            badge.textContent = `${key} : ${val}`;
-            
-            tagsContainer.appendChild(badge);
-        });
-
-    } else {
-        // データがない、または空オブジェクト {} の場合
-        const noTag = document.createElement('span');
-        noTag.className = 'no-tags';
-        noTag.textContent = '該当なし';
-        tagsContainer.appendChild(noTag);
+    try {
+        const tags = subjectData.program_tags;
+        if (tags && typeof tags === 'object' && Object.keys(tags).length > 0) {
+            Object.entries(tags).forEach(([key, val]) => {
+                const badge = document.createElement('span');
+                badge.className = 'program-badge';
+                badge.textContent = `${key} : ${val}`;
+                tagsContainer.appendChild(badge);
+            });
+        } else {
+            const noTag = document.createElement('span');
+            noTag.className = 'no-tags';
+            noTag.textContent = '該当なし';
+            tagsContainer.appendChild(noTag);
+        }
+    } catch (e) {
+        console.error("タグ表示エラー:", e);
     }
 
     // モーダル表示
@@ -313,16 +284,18 @@ async function saveScore() {
     const scoreVal = document.getElementById('modalScoreInput').value;
     const score = scoreVal === '' ? null : parseInt(scoreVal);
     
-    // 学籍番号の取得
     const studentNum = document.getElementById('studentNumberInput').value.trim();
 
     if (!currentEditingSubject) return;
 
-    // データ構築
+    // 現在表示中の学期を取得（★重要：これがないと登録が消えます）
+    const semesterStr = `${state.year}年${state.semester}`;
+
     const upsertData = {
         browser_id: CURRENT_BROWSER_ID,
-        student_number: studentNum || null, // 手動入力時もあれば保存
+        student_number: studentNum || null,
         subject_name: currentEditingSubject,
+        semester: semesterStr, // ★学期情報も保存する
         score: score,
         updated_at: new Date()
     };
@@ -340,50 +313,70 @@ async function saveScore() {
     }
 }
 
+// --- 成績削除処理 ---
+async function deleteScore() {
+    if (!currentEditingSubject) return;
+
+    const isConfirmed = confirm(`「${currentEditingSubject}」の登録情報を削除しますか？\nこの操作は取り消せません。`);
+    if (!isConfirmed) return;
+
+    try {
+        const { error } = await supabase
+            .from('student_grades')
+            .delete()
+            .eq('browser_id', CURRENT_BROWSER_ID)
+            .eq('subject_name', currentEditingSubject);
+
+        if (error) throw error;
+
+        closeScoreModal();
+        await fetchUserGrades(); 
+        renderTimetable();       
+        alert('削除しました。');
+
+    } catch (e) {
+        console.error(e);
+        alert('削除エラー: ' + e.message);
+    }
+}
+
 // --- Excelアップロード処理 ---
 async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // 学籍番号チェック
     const studentNumber = document.getElementById('studentNumberInput').value.trim();
     if (!studentNumber) {
         alert("先に「学籍番号」を入力してください。");
         event.target.value = ""; 
         return;
     }
-    // 学籍番号を記憶
     localStorage.setItem('grade_manager_student_num', studentNumber);
 
     try {
         state.rawFileBuffer = await file.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(state.rawFileBuffer);
-        const worksheet = workbook.worksheets[2]; // 3枚目
+        const worksheet = workbook.worksheets[2]; 
 
-        // 重複除去用のMap
         const upsertMap = new Map();
 
         worksheet.eachRow((row, rowNumber) => {
             if (rowNumber < 6) return;
 
-            // 授業名
             const nameCell = row.getCell(COL_NAME).value;
             if (!nameCell) return;
             const name = (typeof nameCell === 'object' && nameCell.text) ? nameCell.text.trim() : String(nameCell).trim();
 
-            // 点数
             const scoreVal = row.getCell(COL_SCORE_READ).value;
             let finalScore = null;
             if (scoreVal && typeof scoreVal === 'object' && 'result' in scoreVal) finalScore = scoreVal.result;
             else if (scoreVal !== null) finalScore = scoreVal;
 
-            // 点数がなければスキップ
             if (finalScore === null || typeof finalScore !== 'number') return;
             
             finalScore = Math.round(finalScore); 
 
-            // 学期の取得（エクセルから）
             let semester = null;
             for (const [colIdx, semName] of Object.entries(SEMESTER_MAP)) {
                 if (row.getCell(parseInt(colIdx)).value) {
@@ -391,9 +384,7 @@ async function handleFileUpload(event) {
                     break;
                 }
             }
-            if (!semester) {
-                return; 
-            }
+            if (!semester) return; 
 
             upsertMap.set(name, {
                 browser_id: CURRENT_BROWSER_ID,
@@ -416,7 +407,6 @@ async function handleFileUpload(event) {
 
             await fetchUserGrades();
             renderTimetable();
-            document.getElementById('exportBtn').disabled = false;
             alert(`${upsertData.length}件の成績を保存しました。`);
         } else {
             alert('点数が入力されている科目が見つかりませんでした。');
@@ -428,60 +418,45 @@ async function handleFileUpload(event) {
     }
 }
 
-// --- Excelダウンロード処理 ---
+// --- Excel出力処理（ファイル選択版） ---
 async function handleExportWithUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     try {
-        // 1. 選択されたファイルを読み込む
         const arrayBuffer = await file.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(arrayBuffer);
         
-        // 3シート目を取得（インデックス2）
         const worksheet = workbook.worksheets[2]; 
 
         let updateCount = 0;
 
-        // 2. 行を走査してデータを書き込む
         worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber < 6) return; // ヘッダーなどはスキップ
+            if (rowNumber < 6) return; 
 
-            // C列（3列目）の科目名を取得
             const nameCell = row.getCell(COL_NAME).value;
             if (!nameCell) return;
             
-            // ExcelJSのセル値がオブジェクトの場合の対応
             const name = (typeof nameCell === 'object' && nameCell.text) 
                 ? nameCell.text.trim() 
                 : String(nameCell).trim();
 
-            // DB上のデータ（state.userGrades）から科目名で検索
             const match = state.userGrades.find(g => g.subject_name === name);
 
-            // データが見つかり、かつ学期情報がある場合のみ更新
             if (match && match.semester) {
                 const colIndex = SEMESTER_TO_COLUMN[match.semester];
                 if (colIndex) {
                     const cell = row.getCell(colIndex);
-                    
-                    // 点数をセット（nullなら空にする）
                     cell.value = match.score !== null ? match.score : null;
-                    
-                    // 必要に応じてスタイル調整（任意）
-                    // cell.alignment = { horizontal: 'center' }; 
-                    
                     updateCount++;
                 }
             }
         });
 
-        // 3. 書き換えたファイルをダウンロード
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         
-        // ファイル名は元のファイル名に "_updated" をつけたものにする
         const newFileName = file.name.replace('.xlsx', '_updated.xlsx');
         saveAs(blob, newFileName);
         
@@ -491,7 +466,43 @@ async function handleExportWithUpload(event) {
         console.error(e);
         alert('エクスポートエラー: ' + e.message);
     } finally {
-        // 同じファイルを再度選べるように入力をリセット
         event.target.value = '';
+    }
+}
+
+
+// --- 全データ削除処理 ---
+async function handleDeleteAll() {
+    // データがない場合は何もしない
+    if (state.userGrades.length === 0) {
+        alert("削除するデータがありません。");
+        return;
+    }
+
+    // 誤操作防止のための2段階確認
+    const confirm1 = confirm("【警告】\n登録されている全ての成績データを削除しますか？\nこの操作は元に戻せません。");
+    if (!confirm1) return;
+
+    const confirm2 = confirm("本当に削除してよろしいですか？\nExcelファイルなどへのバックアップがない場合、データは完全に失われます。");
+    if (!confirm2) return;
+
+    try {
+        // Supabaseから、自分のブラウザIDのデータを全て削除
+        const { error } = await supabase
+            .from('student_grades')
+            .delete()
+            .eq('browser_id', CURRENT_BROWSER_ID);
+
+        if (error) throw error;
+
+        // 画面側のデータをクリアして再描画
+        state.userGrades = [];
+        renderTimetable();
+        
+        alert("全てのデータを削除しました。");
+
+    } catch (e) {
+        console.error(e);
+        alert('削除エラー: ' + e.message);
     }
 }

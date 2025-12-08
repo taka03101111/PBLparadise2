@@ -99,8 +99,19 @@
             cursor: not-allowed;
         }
 
+        .btn-danger {
+            background-color: #ef4444; /* 赤色 */
+            color: white;
+            border: 1px solid #ef4444;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626; /* 濃い赤 */
+        }
+
         /* モーダル調整 */
-        .modal-content { max-width: 400px; }
+        .modal-content { max-width: 520px;
+        width: 95%;
+        }
     </style>
 </head>
 <body>
@@ -138,7 +149,7 @@
                     <div class="input-box">
                         <label for="studentNumberInput">学籍番号 (必須)</label>
                         <input type="text" id="studentNumberInput" placeholder="2110001" 
-                               style="padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 140px;">
+                            style="padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 140px;">
                     </div>
 
                     <!-- Excel読み込み -->
@@ -174,6 +185,14 @@
                             <label style="margin:0; cursor:pointer;"><input type="radio" name="classType" value="A" checked> Aクラス</label>
                             <label style="margin:0; cursor:pointer;"><input type="radio" name="classType" value="B"> Bクラス</label>
                         </div>
+                    </div>
+
+                    <!-- 全データ削除 -->
+                    <div class="input-box">
+                        <label>データ管理</label>
+                        <button id="deleteAllBtn" class="btn btn-danger" style="font-size: 0.9rem;">
+                            <i class="fas fa-trash-alt"></i> 全データ削除
+                        </button>
                     </div>
 
                     <!-- ダウンロード -->
@@ -248,9 +267,18 @@
             </div>
                 <p style="margin-bottom: 15px;">成績入力（0〜100）</p>
                 <input type="number" id="modalScoreInput" class="form-control" style="width: 100%; padding: 10px; font-size: 1.2rem; margin-bottom: 20px;" min="0" max="100">
-                <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                    <button class="btn btn-secondary" onclick="closeScoreModal()">キャンセル</button>
-                    <button class="btn btn-primary" onclick="saveScore()">保存する</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                    
+                    <!-- 削除ボタン (初期状態は非表示 style="display:none") -->
+                    <button id="deleteScoreBtn" class="btn btn-danger" onclick="deleteScore()" style="display: none;">
+                        <i class="fas fa-trash"></i> 削除
+                    </button>
+
+                    <!-- 右側のボタングループ -->
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="closeScoreModal()">キャンセル</button>
+                        <button class="btn btn-primary" onclick="saveScore()">保存する</button>
+                    </div>
                 </div>
             </div>
         </div>
