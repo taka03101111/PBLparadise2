@@ -201,7 +201,11 @@ function renderTimetable() {
                 let html = `<div style="font-weight:600; margin-bottom:4px;">${subj.subject_name}</div>`;
                 
                 if (currentGrade && currentGrade.score !== null) {
-                    html += `<span class="score-badge">${currentGrade.score}点</span>`;
+                    let badgeClass = "score-badge";
+                    if (currentGrade.score < 60) {
+                        badgeClass += " failed";
+                    }
+                    html += `<span class="${badgeClass}">${currentGrade.score}点</span>`;
                 } else if (currentGrade) {
                     html += `<span class="score-badge" style="background:#aaa;">履修中</span>`;
                 }
