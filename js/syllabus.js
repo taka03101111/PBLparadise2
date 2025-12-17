@@ -29,7 +29,13 @@ function setupEventListeners() {
 // ============================================
 async function loadSyllabus() {
     try {
-        const { data, error } = await supabase
+        const client = window.supabaseClient;
+        if (!client) {
+            console.error("Supabase client is not initialized");
+            showMessage("Supabase が初期化されていません", "error");
+            return;
+        }
+        const { data, error } = await client
             .from("courses")
             .select("*");
 
@@ -106,8 +112,14 @@ function createCard(course) {
 // ============================================
 async function showDetail(courseId) {
     try {
+        const client = window.supabaseClient;
+        if (!client) {
+            console.error("Supabase client is not initialized");
+            showMessage("Supabase が初期化されていません", "error");
+            return;
+        }
         // id に一致するデータだけ取得
-        const { data, error } = await supabase
+        const { data, error } = await client
             .from("courses")         // ← あなたのテーブル名に合わせてある
             .select("*")
             .eq("id", courseId)
