@@ -2,10 +2,8 @@
 // 履修登録・成績管理 (Excel連携 & マスターデータ版)
 // ==========================================
 
-const SUPABASE_URL = "https://qlsqyymfamslyrzhcggn.supabase.co"; 
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsc3F5eW1mYW1zbHlyemhjZ2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MjA0NDEsImV4cCI6MjA3ODQ5NjQ0MX0._jEWZGK3yDZKy95jPibMFh7c9u3nnJxsIek0UrvRjbQ"; 
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// SupabaseクライアントはHTMLで定義されている（window.supabaseClient）を使用
+// グローバル変数 supabase は削除し、必要な場所で window.supabaseClient を参照するように変更
 
 // ブラウザID (ローカルストレージで管理)
 function getBrowserId() {
@@ -43,7 +41,7 @@ let state = {
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. マスターデータをロード
     await fetchMasterData();
-    
+
     // 2. ユーザーの成績をロード
     await fetchUserGrades();
 
@@ -71,34 +69,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // --- データ取得 ---
 async function fetchMasterData() {
-    const { data, error } = await supabase.from('subject_master').select('*');
+    const client = window.supabaseClient;
+    if (!client) { console.error("Supabase client not initialized"); return; }
+    const { data, error } = await client.from('subject_master').select('*');
     if (error) console.error('マスター取得エラー:', error);
     else state.masterData = data || [];
 }
 
 async function fetchUserGrades() {
-    const { data, error } = await supabase
+    const client = window.supabaseClient;
+    if (!client) { console.error("Supabase client not initialized"); return; }
+
+    const { data, error } = await client
         .from('student_grades')
         .select('*')
         .eq('browser_id', CURRENT_BROWSER_ID);
-    
+
     if (error) console.error('成績取得エラー:', error);
     else state.userGrades = data || [];
 }
 
 // --- イベントリスナー ---
 function setupEventListeners() {
-    document.getElementById('yearSelect').addEventListener('change', (e) => { 
-        state.year = parseInt(e.target.value); renderTimetable(); 
+    document.getElementById('yearSelect').addEventListener('change', (e) => {
+        state.year = parseInt(e.target.value); renderTimetable();
     });
-    document.getElementById('semesterSelect').addEventListener('change', (e) => { 
-        state.semester = e.target.value; renderTimetable(); 
+    document.getElementById('semesterSelect').addEventListener('change', (e) => {
+        state.semester = e.target.value; renderTimetable();
     });
     document.querySelectorAll('input[name="classType"]').forEach(r => {
-        r.addEventListener('change', (e) => { 
+        r.addEventListener('change', (e) => {
             state.classType = e.target.value;
             localStorage.setItem('grade_manager_class_type', state.classType);
-            renderTimetable(); 
+            renderTimetable();
         });
     });
 
@@ -133,14 +136,14 @@ function setupEventListeners() {
 
 function getSemesterValue(semesterStr) {
     if (!semesterStr) return 0;
-    const year = parseInt(semesterStr); 
+    const year = parseInt(semesterStr);
     const isLate = semesterStr.includes('後期');
     return year * 10 + (isLate ? 5 : 0);
 }
 
 // --- 時間割描画ロジック ---
 function renderTimetable() {
-    document.getElementById('timetableTitle').textContent = 
+    document.getElementById('timetableTitle').textContent =
         `${state.year}年 ${state.semester} の時間割 (クラス: ${state.classType})`;
 
     const tbody = document.getElementById('timetableBody');
@@ -151,7 +154,7 @@ function renderTimetable() {
 
     PERIODS.forEach(period => {
         const tr = document.createElement('tr');
-        
+
         const th = document.createElement('td');
         th.textContent = `${period}限`;
         th.style.textAlign = 'center';
@@ -162,8 +165,8 @@ function renderTimetable() {
 
         DAYS.forEach(day => {
             const td = document.createElement('td');
-            
-            const subjects = state.masterData.filter(m => 
+
+            const subjects = state.masterData.filter(m =>
                 m.year === state.year &&
                 m.semester === state.semester &&
                 m.day_of_week === day &&
@@ -174,7 +177,7 @@ function renderTimetable() {
             subjects.forEach(subj => {
                 const allGradesForSubject = state.userGrades.filter(g => g.subject_name === subj.subject_name);
                 const currentGrade = allGradesForSubject.find(g => g.semester === currentViewSemesterStr);
-                
+
                 let isRetake = false;
                 if (currentGrade) {
                     const hasOlderGrade = allGradesForSubject.some(g => {
@@ -185,21 +188,21 @@ function renderTimetable() {
                     }
                 }
 
-                let cardClass = 'master'; 
+                let cardClass = 'master';
                 if (isRetake) {
-                    cardClass = 'retake'; 
+                    cardClass = 'retake';
                 } else if (currentGrade) {
-                    cardClass = 'registered'; 
+                    cardClass = 'registered';
                 }
 
                 const card = document.createElement('div');
                 card.className = `subject-card ${cardClass}`;
-                
+
                 // ★修正点：成績データ(currentGrade)を渡す
                 card.onclick = () => openScoreModal(subj, currentGrade);
 
                 let html = `<div style="font-weight:600; margin-bottom:4px;">${subj.subject_name}</div>`;
-                
+
                 if (currentGrade && currentGrade.score !== null) {
                     let badgeClass = "score-badge";
                     if (currentGrade.score < 60) {
@@ -209,11 +212,11 @@ function renderTimetable() {
                 } else if (currentGrade) {
                     html += `<span class="score-badge" style="background:#aaa;">履修中</span>`;
                 }
-                
+
                 if (isRetake) {
                     html += `<span style="font-size:0.7rem; color:#d97706; font-weight:bold; position:absolute; bottom:5px; left:5px;">再履修</span>`;
                 }
-                
+
                 card.innerHTML = html;
                 td.appendChild(card);
             });
@@ -253,7 +256,7 @@ function openScoreModal(subjectData, currentGrade) {
 
     // 5. プログラムタグ (program_tags) セット
     const tagsContainer = document.getElementById('modalTags');
-    tagsContainer.innerHTML = ''; 
+    tagsContainer.innerHTML = '';
 
     try {
         const tags = subjectData.program_tags;
@@ -287,7 +290,7 @@ function closeScoreModal() {
 async function saveScore() {
     const scoreVal = document.getElementById('modalScoreInput').value;
     const score = scoreVal === '' ? null : parseInt(scoreVal);
-    
+
     const studentNum = document.getElementById('studentNumberInput').value.trim();
 
     if (!currentEditingSubject) return;
@@ -304,7 +307,10 @@ async function saveScore() {
         updated_at: new Date()
     };
 
-    const { error } = await supabase
+    const client = window.supabaseClient;
+    if (!client) { alert("データベース接続エラー"); return; }
+
+    const { error } = await client
         .from('student_grades')
         .upsert(upsertData, { onConflict: 'browser_id, subject_name' });
 
@@ -325,7 +331,10 @@ async function deleteScore() {
     if (!isConfirmed) return;
 
     try {
-        const { error } = await supabase
+        const client = window.supabaseClient;
+        if (!client) throw new Error("データベース接続エラー");
+
+        const { error } = await client
             .from('student_grades')
             .delete()
             .eq('browser_id', CURRENT_BROWSER_ID)
@@ -334,8 +343,8 @@ async function deleteScore() {
         if (error) throw error;
 
         closeScoreModal();
-        await fetchUserGrades(); 
-        renderTimetable();       
+        await fetchUserGrades();
+        renderTimetable();
         alert('削除しました。');
 
     } catch (e) {
@@ -352,7 +361,7 @@ async function handleFileUpload(event) {
     const studentNumber = document.getElementById('studentNumberInput').value.trim();
     if (!studentNumber) {
         alert("先に「学籍番号」を入力してください。");
-        event.target.value = ""; 
+        event.target.value = "";
         return;
     }
     localStorage.setItem('grade_manager_student_num', studentNumber);
@@ -361,7 +370,7 @@ async function handleFileUpload(event) {
         state.rawFileBuffer = await file.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(state.rawFileBuffer);
-        const worksheet = workbook.worksheets[2]; 
+        const worksheet = workbook.worksheets[2];
 
         const upsertMap = new Map();
 
@@ -378,8 +387,8 @@ async function handleFileUpload(event) {
             else if (scoreVal !== null) finalScore = scoreVal;
 
             if (finalScore === null || typeof finalScore !== 'number') return;
-            
-            finalScore = Math.round(finalScore); 
+
+            finalScore = Math.round(finalScore);
 
             let semester = null;
             for (const [colIdx, semName] of Object.entries(SEMESTER_MAP)) {
@@ -388,7 +397,7 @@ async function handleFileUpload(event) {
                     break;
                 }
             }
-            if (!semester) return; 
+            if (!semester) return;
 
             upsertMap.set(name, {
                 browser_id: CURRENT_BROWSER_ID,
@@ -403,7 +412,10 @@ async function handleFileUpload(event) {
         const upsertData = Array.from(upsertMap.values());
 
         if (upsertData.length > 0) {
-            const { error } = await supabase
+            const client = window.supabaseClient;
+            if (!client) throw new Error("データベース接続エラー");
+
+            const { error } = await client
                 .from('student_grades')
                 .upsert(upsertData, { onConflict: 'browser_id, subject_name' });
 
@@ -431,19 +443,19 @@ async function handleExportWithUpload(event) {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(arrayBuffer);
-        
-        const worksheet = workbook.worksheets[2]; 
+
+        const worksheet = workbook.worksheets[2];
 
         let updateCount = 0;
 
         worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber < 6) return; 
+            if (rowNumber < 6) return;
 
             const nameCell = row.getCell(COL_NAME).value;
             if (!nameCell) return;
-            
-            const name = (typeof nameCell === 'object' && nameCell.text) 
-                ? nameCell.text.trim() 
+
+            const name = (typeof nameCell === 'object' && nameCell.text)
+                ? nameCell.text.trim()
                 : String(nameCell).trim();
 
             const match = state.userGrades.find(g => g.subject_name === name);
@@ -460,10 +472,10 @@ async function handleExportWithUpload(event) {
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-        
+
         const newFileName = file.name.replace('.xlsx', '_updated.xlsx');
         saveAs(blob, newFileName);
-        
+
         alert(`処理完了！\n${updateCount}件の成績を更新して保存しました。`);
 
     } catch (e) {
@@ -492,7 +504,10 @@ async function handleDeleteAll() {
 
     try {
         // Supabaseから、自分のブラウザIDのデータを全て削除
-        const { error } = await supabase
+        const client = window.supabaseClient;
+        if (!client) throw new Error("データベース接続エラー");
+
+        const { error } = await client
             .from('student_grades')
             .delete()
             .eq('browser_id', CURRENT_BROWSER_ID);
@@ -502,7 +517,7 @@ async function handleDeleteAll() {
         // 画面側のデータをクリアして再描画
         state.userGrades = [];
         renderTimetable();
-        
+
         alert("全てのデータを削除しました。");
 
     } catch (e) {

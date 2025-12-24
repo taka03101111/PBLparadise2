@@ -11,8 +11,16 @@ document.addEventListener("DOMContentLoaded", loadPosts);
 // 投稿データの読み込み
 async function loadPosts() {
 
-    // SupabaseクライアントはHTMLで定義されている（const supabase = ...）と仮定します。
-    const { data: posts, error } = await supabase
+    // SupabaseクライアントはHTMLで定義されている（window.supabaseClient）と仮定します。
+    const client = window.supabaseClient;
+    if (!client) {
+        console.error("Supabase client is not initialized");
+        const container = document.getElementById("postsContainer");
+        container.innerHTML = "<p>システムエラー: データベース接続が初期化されていません。</p>";
+        return;
+    }
+
+    const { data: posts, error } = await client
         .from("posts")
         .select("*")
         .order("created_at", { ascending: false });
@@ -36,7 +44,7 @@ async function loadPosts() {
         `;
         return;
     }
-    
+
     // 投稿一覧の表示
     const postsHtml = posts.map(p => {
         // 画像とPDFのプレビューを分ける
@@ -44,17 +52,17 @@ async function loadPosts() {
         const fileUrl = p.file_url || '';
 
         if (fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
-             // 画像ファイル
-             fileContent = `<img src="${fileUrl}" class="post-image" alt="投稿画像">`;
+            // 画像ファイル
+            fileContent = `<img src="${fileUrl}" class="post-image" alt="投稿画像">`;
         } else if (fileUrl.match(/\.pdf$/i)) {
-             // PDFファイル
-             fileContent = `<div class="post-file-preview pdf-preview">
+            // PDFファイル
+            fileContent = `<div class="post-file-preview pdf-preview">
                                 <i class="fas fa-file-pdf"></i>
                                 <a href="${fileUrl}" target="_blank">PDFファイルを開く</a>
                             </div>`;
         } else if (fileUrl) {
-             // その他のファイル
-             fileContent = `<div class="post-file-preview other-file">
+            // その他のファイル
+            fileContent = `<div class="post-file-preview other-file">
                                 <i class="fas fa-file"></i>
                                 <a href="${fileUrl}" target="_blank">ファイルを開く</a>
                             </div>`;
